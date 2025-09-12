@@ -1,81 +1,130 @@
-﻿namespace ForTheKing;
+﻿using System.Threading.Tasks;
 
-public abstract class Tile(Coordinate position, byte hp, byte damage, byte range)
+namespace ForTheKing;
+
+public abstract class Tile(Coordinate position, byte hp, byte damage, byte range, byte speed)
 {
+	public class DieEventArgs(Coordinate position) : EventArgs
+	{
+		private readonly Coordinate position = position;
+
+		public Coordinate Position => position;
+	}
+
+	public class MoveEventArgs(Coordinate oldPosition, Coordinate newPosition) : EventArgs
+	{
+		private readonly Coordinate oldPosition = oldPosition;
+		private readonly Coordinate newPosition = newPosition;
+
+		public Coordinate OldPosition => oldPosition;
+		public Coordinate NewPosition => newPosition;
+	}
+
 	protected Coordinate position = position;
 	protected byte hp = hp;
 	protected byte damage = damage;
 	protected byte range = range;
+	protected byte speed = speed;
 
 	public Coordinate Position => position;
 	public byte Hp => hp;
 	public byte Damage => damage;
 	public byte Range => range;
 
-	public bool TakeHit(Tile enemy)
+	public void TakeHit(Tile enemy)
 	{
-		bool dies = hp < enemy.damage;
+		hp = (byte)(Math.Max(hp - enemy.damage, 0));
 
-		hp = (byte)(dies ? hp - enemy.damage : 0);
-
-		return dies;
+		if (hp == 0)
+			Game.OnDying(enemy.position);
 	}
+
+	public virtual Tile? Target() { return null; }
 
 	public virtual void Attack() { }
 
 	public virtual void Move() { }
-}
 
-public abstract class Ally(Coordinate position, byte hp, byte damage, byte range) : Tile(position, hp, damage, range)
-{
-	public abstract byte Cost();
-
-	protected static void StdMove(Ally tile)
+	public virtual void Run()
 	{
-		Tile? target = Game.GetCircleArea(tile).FindAll(x => x is Enemy).MinBy(x => Coordinate.Distance(tile.position, x.Position));
-		Coordinate targetPosition = target is Enemy a ? a.Position : new Coordinate(0, 0);
-		Coordinate c = tile.Position;
+		while (hp > 0)
+		{
+			Task.Delay((int)(speed * Game.TICKTIME));
 
-		if (Math.Abs(c.X - targetPosition.X) > Math.Abs(c.Y - targetPosition.Y))
-			c.X = (sbyte)(Math.Sign(c.X) * (Math.Abs(c.X) - 1));
-		else
-			c.Y = (sbyte)(Math.Sign(c.Y) * (Math.Abs(c.Y) - 1));
+			Tile? target = Target();
+
+			if (target is Tile t && Coordinate.Distance(position, t.position) < range)
+				Attack();
+			else
+				Move();
+		}
 	}
 }
 
-public class Castle(Coordinate position) : Ally(position, 100, 0, 0)
+public abstract class Ally(Coordinate position, byte hp, byte damage, byte range, byte speed) : Tile(position, hp, damage, range, speed)
 {
+	protected static Coordinate StdMove(Ally tile)
+	{
+		Tile? target = tile.Target();
+		Coordinate targetPosition = target is Enemy a ? a.Position : new Coordinate(0, 0);
+		Coordinate result = new(tile.position.X, tile.position.Y);
+
+		if (Math.Abs(result.X - targetPosition.X) > Math.Abs(result.Y - targetPosition.Y))
+			result.X = (sbyte)(Math.Sign(result.X) * (Math.Abs(result.X) - 1));
+		else
+			result.Y = (sbyte)(Math.Sign(result.Y) * (Math.Abs(result.Y) - 1));
+
+		return result;
+	}
+
+	public abstract byte Cost();
+}
+
+public class Castle(Coordinate position) : Ally(position, 100, 0, 0, 0)
+{
+	public override void Run() { }
+
 	public override byte Cost() => throw new NotImplementedException();
 }
 
-public class Knight(Coordinate position) : Ally(position, 5, 1, 1)
+public class Knight(Coordinate position) : Ally(position, 5, 1, 1, 0)
 {
 	public override void Attack() => Game.GetBoxArea(this).FindAll(x => x is Enemy).ForEach(x => x.TakeHit(this));
 
 	public override byte Cost() => 1;
 }
 
-public abstract class Enemy(Coordinate position, byte hp, byte damage, byte range) : Tile(position, hp, damage, range)
+public abstract class Enemy(Coordinate position, byte hp, byte damage, byte range, byte speed) : Tile(position, hp, damage, range, speed)
 {
-	protected static void StdMove(Enemy tile)
+	public override Tile? Target()
 	{
-		Tile? target = Game.GetCircleArea(tile).FindAll(x => x is Ally).MinBy(x => Coordinate.Distance(tile.position, x.Position));
-		Coordinate targetPosition = target is Ally a ? a.Position : new Coordinate(0, 0);
-		Coordinate c = tile.Position;
-
-		if (Math.Abs(c.X - targetPosition.X) > Math.Abs(c.Y - targetPosition.Y))
-			c.X = (sbyte)(Math.Sign(c.X) * (Math.Abs(c.X) - 1));
-		else
-			c.Y = (sbyte)(Math.Sign(c.Y) * (Math.Abs(c.Y) - 1));
+		return Game.GetCircleArea(this).FindAll(x => x is Ally).MinBy(x => Coordinate.Distance(position, x.Position));
 	}
-}
 
-public class Goblin(Coordinate position) : Enemy(position, 2, 1, 1)
-{
-	public override void Attack() => Game.GetBoxArea(this).FindAll(x => x is Ally)?.First().TakeHit(this);
+	protected static Coordinate StdMove(Enemy tile)
+	{
+		Tile? target = tile.Target();
+		Coordinate targetPosition = target is Ally a ? a.Position : new Coordinate(0, 0);
+		Coordinate result = new(tile.position.X, tile.position.Y);
+
+		if (Math.Abs(result.X - targetPosition.X) > Math.Abs(result.Y - targetPosition.Y))
+			result.X = (sbyte)(Math.Sign(result.X) * (Math.Abs(result.X) - 1));
+		else
+			result.Y = (sbyte)(Math.Sign(result.Y) * (Math.Abs(result.Y) - 1));
+
+		return result;
+	}
 
 	public override void Move()
 	{
-		StdMove(this);
+		Coordinate oldPosition = position;
+
+		position = StdMove(this);
+		Game.OnMoving(oldPosition, position);
 	}
+}
+
+public class Goblin(Coordinate position) : Enemy(position, 2, 1, 1, 2)
+{
+	public override void Attack() => Game.GetBoxArea(this).FindAll(x => x is Ally)?.First().TakeHit(this);
 }

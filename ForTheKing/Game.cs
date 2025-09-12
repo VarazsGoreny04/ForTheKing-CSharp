@@ -1,15 +1,52 @@
-﻿using System.Timers;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using System.Timers;
 
 namespace ForTheKing;
 
 public static class Game
 {
 	public const byte MAPLENGTH = 12;
+	public const uint TICKTIME = 200;
 
-	private static Phase gamePhase;
-	private static Timer timer = new();
+	// private static Phase gamePhase;
+	// private static Timer timer = new();
 	private static readonly Tile?[,] map = new Tile?[(MAPLENGTH * 2) + 1, (MAPLENGTH * 2) + 1];
-	private static uint gold;
+	private static readonly List<Tile> tiles = [];
+	private static uint gold = 10;
+
+	private static List<CancellationTokenSource> tasks = [];
+	public static event EventHandler<Tile.DieEventArgs>? Dying;
+	public static event EventHandler<Tile.MoveEventArgs>? Moving;
+
+	public static async Task InitializeAsync()
+	{
+		// Clearing tasks
+		tasks.ForEach(x => x.Cancel());
+		tasks.Clear();
+
+		// Clearing map
+		for (int i = (MAPLENGTH * 2) + 1; i >= 0; --i)
+		{
+			for (int j = (MAPLENGTH * 2) + 1; j >= 0; --j)
+				map[j, i] = null;
+		}
+		tiles.Clear();
+
+		// Initial state
+		gold = 10;
+		await AddTileAsync(new Castle(new Coordinate(0, 0)));
+		// Game phase => start
+	}
+
+	public static Task EndAsync()
+	{
+		tasks.ForEach(x => x.Cancel());
+
+		// Game phase => end
+
+		return Task.CompletedTask;
+	}
 
 	public static Tile? GetTile(Coordinate c)
 	{
@@ -20,16 +57,17 @@ public static class Game
 		return (0 <= x && x < mapLength && 0 < y && y < mapLength) ? map[x, y] : null;
 	}
 
-	public static bool Buy(Ally tile)
+	public static async Task<bool> BuyAsync(Ally tile)
 	{
-		if (tile.Cost() > gold || !AddTile(tile))
+		if (tile.Cost() > gold || !(await AddTileAsync(tile)))
 			return false;
 
 		gold -= tile.Cost();
+
 		return true;
 	}
 
-	private static bool AddTile(Tile tile)
+	private static async Task<bool> AddTileAsync(Tile tile)
 	{
 		ref Tile? temp = ref map[tile.Position.X + MAPLENGTH, tile.Position.Y + MAPLENGTH];
 
@@ -37,6 +75,11 @@ public static class Game
 			return false;
 
 		temp = tile;
+		tiles.Add(tile);
+		CancellationTokenSource newSource = new();
+		await Task.Run(tile.Run, newSource.Token);
+		tasks.Add(newSource);
+		
 		return true;
 	}
 
@@ -94,5 +137,21 @@ public static class Game
 		}
 
 		return result;
+	}
+
+	public static void OnMoving(Coordinate old, Coordinate current)
+	{
+		Tile? tile = map[old.X + MAPLENGTH, old.Y + MAPLENGTH];
+		map[old.X + MAPLENGTH, old.Y + MAPLENGTH] = null;
+		map[current.X + MAPLENGTH, current.Y + MAPLENGTH] = tile;
+
+		Moving?.Invoke(null, new Tile.MoveEventArgs(old, current));
+	}
+
+	public static void OnDying(Coordinate position)
+	{
+		map[position.X, position.Y] = null;
+
+		Dying?.Invoke(null, new Tile.DieEventArgs(position));
 	}
 }
