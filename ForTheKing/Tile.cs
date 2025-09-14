@@ -1,15 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using ForTheKingWFP.ViewModel;
 
 namespace ForTheKing;
 
-public abstract class Tile(Coordinate position, byte hp, byte damage, byte range, byte speed)
+public abstract class Tile(GameModel game, Coordinate position, byte hp, byte damage, byte range, byte speed)
 {
-	public class DieEventArgs(Coordinate position) : EventArgs
-	{
-		private readonly Coordinate position = position;
-
-		public Coordinate Position => position;
-	}
+	public class InitializeEventArgs : EventArgs { }
 
 	public class MoveEventArgs(Coordinate oldPosition, Coordinate newPosition) : EventArgs
 	{
@@ -20,6 +15,14 @@ public abstract class Tile(Coordinate position, byte hp, byte damage, byte range
 		public Coordinate NewPosition => newPosition;
 	}
 
+	public class DieEventArgs(Coordinate position) : EventArgs
+	{
+		private readonly Coordinate position = position;
+
+		public Coordinate Position => position;
+	}
+
+	protected GameModel game = game;
 	protected Coordinate position = position;
 	protected byte hp = hp;
 	protected byte damage = damage;
@@ -36,7 +39,7 @@ public abstract class Tile(Coordinate position, byte hp, byte damage, byte range
 		hp = (byte)(Math.Max(hp - enemy.damage, 0));
 
 		if (hp == 0)
-			Game.OnDying(enemy.position);
+			game.OnDying(enemy.position);
 	}
 
 	public virtual Tile? Target() { return null; }
@@ -49,7 +52,7 @@ public abstract class Tile(Coordinate position, byte hp, byte damage, byte range
 	{
 		while (hp > 0)
 		{
-			Task.Delay((int)(speed * Game.TICKTIME));
+			Task.Delay((int)(speed * GameModel.TICKTIME));
 
 			Tile? target = Target();
 
@@ -59,9 +62,11 @@ public abstract class Tile(Coordinate position, byte hp, byte damage, byte range
 				Move();
 		}
 	}
+
+	public abstract FieldNames Type();
 }
 
-public abstract class Ally(Coordinate position, byte hp, byte damage, byte range, byte speed) : Tile(position, hp, damage, range, speed)
+public abstract class Ally(GameModel game, Coordinate position, byte hp, byte damage, byte range, byte speed) : Tile(game, position, hp, damage, range, speed)
 {
 	protected static Coordinate StdMove(Ally tile)
 	{
@@ -80,25 +85,29 @@ public abstract class Ally(Coordinate position, byte hp, byte damage, byte range
 	public abstract byte Cost();
 }
 
-public class Castle(Coordinate position) : Ally(position, 100, 0, 0, 0)
+public class Castle(GameModel game, Coordinate position) : Ally(game, position, 100, 0, 0, 0)
 {
 	public override void Run() { }
 
 	public override byte Cost() => throw new NotImplementedException();
+
+	public override FieldNames Type() => FieldNames.Castle;
 }
 
-public class Knight(Coordinate position) : Ally(position, 5, 1, 1, 0)
+public class Knight(GameModel game, Coordinate position) : Ally(game, position, 5, 1, 1, 0)
 {
-	public override void Attack() => Game.GetBoxArea(this).FindAll(x => x is Enemy).ForEach(x => x.TakeHit(this));
+	public override void Attack() => game.GetBoxArea(this).FindAll(x => x is Enemy).ForEach(x => x.TakeHit(this));
 
 	public override byte Cost() => 1;
+
+	public override FieldNames Type() => FieldNames.Ally;
 }
 
-public abstract class Enemy(Coordinate position, byte hp, byte damage, byte range, byte speed) : Tile(position, hp, damage, range, speed)
+public abstract class Enemy(GameModel game, Coordinate position, byte hp, byte damage, byte range, byte speed) : Tile(game, position, hp, damage, range, speed)
 {
 	public override Tile? Target()
 	{
-		return Game.GetCircleArea(this).FindAll(x => x is Ally).MinBy(x => Coordinate.Distance(position, x.Position));
+		return game.GetCircleArea(this).FindAll(x => x is Ally).MinBy(x => Coordinate.Distance(position, x.Position));
 	}
 
 	protected static Coordinate StdMove(Enemy tile)
@@ -120,11 +129,13 @@ public abstract class Enemy(Coordinate position, byte hp, byte damage, byte rang
 		Coordinate oldPosition = position;
 
 		position = StdMove(this);
-		Game.OnMoving(oldPosition, position);
+		game.OnMoving(oldPosition, position);
 	}
 }
 
-public class Goblin(Coordinate position) : Enemy(position, 2, 1, 1, 2)
+public class Goblin(GameModel game, Coordinate position) : Enemy(game, position, 2, 1, 1, 2)
 {
-	public override void Attack() => Game.GetBoxArea(this).FindAll(x => x is Ally)?.First().TakeHit(this);
+	public override void Attack() => game.GetBoxArea(this).FindAll(x => x is Ally)?.First().TakeHit(this);
+
+	public override FieldNames Type() => FieldNames.Empty;
 }
