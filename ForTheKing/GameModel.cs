@@ -1,26 +1,30 @@
-﻿namespace ForTheKing;
+﻿using ForTheKingWFP.ViewModel;
+using System.Diagnostics;
+
+namespace ForTheKing;
 
 public class GameModel
 {
-	public const byte MAPRADIUS = 12;
+	public const byte MAPRADIUS = 7;
 	public const byte MAPLENGTH = MAPRADIUS * 2 + 1;
-	public const uint TICKTIME = 10000;
+	public const uint TICKTIME = 1000;
 
-	private long timer;
+	private uint timer;
 	private readonly Tile?[,] map;
 	private readonly List<Tile> tiles;
 	private Castle castle;
 	private uint gold;
 
-	private CancellationTokenSource gameLoop;
+	private (Task Task, CancellationTokenSource TokenSource) gameLoop;
 	private readonly List<CancellationTokenSource> tasks;
 
-	public Tile?[,] Map => map;
 	public List<Tile> Tiles => tiles;
 	public uint Gold { get => gold; }
-	public long Timer => timer;
+	public uint Timer => timer;
+	public Tile? this[int x, int y] { get => map[x + MAPRADIUS, y + MAPRADIUS]; private set => map[x + MAPRADIUS, y + MAPRADIUS] = value; }
 
 	public event EventHandler<Tile.InitializeEventArgs>? CreatingGame;
+	public event EventHandler<Tile.PlaceEventArgs>? PlacingTile;
 	public event EventHandler<Tile.DieEventArgs>? Dying;
 	public event EventHandler<Tile.MoveEventArgs>? Moving;
 
@@ -35,20 +39,14 @@ public class GameModel
 		timer = 0;
 
 		castle = new(this, new Coordinate(0, 0));
-		map[castle.Position.X, castle.Position.Y] = castle;
+		this[castle.Position.X, castle.Position.Y] = castle;
 		tiles.Add(castle);
 
-		gameLoop = new CancellationTokenSource();
+		gameLoop = (null!, new CancellationTokenSource());
 	}
 
-	public async Task InitializeAsync()
+	public Task Initialize()
 	{
-		// Clearing tasks
-		gameLoop.Cancel();
-		gameLoop = new CancellationTokenSource();
-		tasks.ForEach(x => x.Cancel());
-		tasks.Clear();
-
 		// Clearing map
 		for (int i = 0; i < MAPLENGTH; ++i)
 		{
@@ -61,49 +59,55 @@ public class GameModel
 		gold = 10;
 		timer = 0;
 		castle = new Castle(this, new Coordinate(0, 0));
-		await AddTileAsync(castle);
+
+		this[castle.Position.X, castle.Position.Y] = castle;
+		tiles.Add(castle);
 		// Game phase => start
 
-		//await Task.Run(GameLoop, gameLoop.Token);
+		gameLoop.TokenSource = new CancellationTokenSource();
+		gameLoop.Task = Task.Run(GameLoop, gameLoop.TokenSource.Token);
+
+		return Task.CompletedTask;
 	}
 
 	public async Task GameLoop()
 	{
 		Random rnd = new();
-		List<Coordinate> possibilities = [];
 
 		while (castle.Hp is not 0)
 		{
+			Debug.WriteLine(ToString());
+
+			List<Coordinate> possibilities = [];
 			await Task.Delay((int)TICKTIME);
 
 			for (sbyte i = -MAPRADIUS; i <= MAPRADIUS; ++i)
 			{
 				possibilities.Add(new Coordinate(-MAPRADIUS, i));
 				possibilities.Add(new Coordinate((sbyte)MAPRADIUS, i));
-			}
-			for (sbyte i = -MAPRADIUS; i <= MAPRADIUS; ++i)
-			{
 				possibilities.Add(new Coordinate(i, -MAPRADIUS));
 				possibilities.Add(new Coordinate(i, (sbyte)MAPRADIUS));
 			}
 
-			for (int i = 0; i < (timer / 10) + 1; ++i)
-			{
-				int index = rnd.Next(possibilities.Count);
+			/*for (int i = 0; i < (timer / 10) + 1; ++i)
+			{*/
+			int index = rnd.Next(possibilities.Count);
 
-				await AddTileAsync(new Goblin(this, possibilities[index]));
+			await AddTile(new Goblin(this, possibilities[index]));
 
-				possibilities.RemoveAt(index);
-			}
+			possibilities.RemoveAt(index);
+			//}
 
 			++gold;
 			++timer;
 		}
 	}
 
-	public Task EndAsync()
+	public Task End()
 	{
+		gameLoop.TokenSource.Cancel();
 		tasks.ForEach(x => x.Cancel());
+		tasks.Clear();
 
 		// Game phase => end
 
@@ -112,16 +116,12 @@ public class GameModel
 
 	public Tile? GetTile(Coordinate c)
 	{
-		int mapLength = map.GetLength(0);
-		int x = c.X + MAPRADIUS;
-		int y = c.Y + MAPRADIUS;
-
-		return (0 <= x && x < mapLength && 0 < y && y < mapLength) ? map[x, y] : null;
+		return (-MAPRADIUS <= c.X && c.X <= MAPRADIUS && -MAPRADIUS <= c.Y && c.Y <= MAPRADIUS) ? this[c.X, c.Y] : null;
 	}
 
 	public async Task<bool> BuyAsync(Ally tile)
 	{
-		Task<bool> getBoolTask = AddTileAsync(tile);
+		Task<bool> getBoolTask = AddTile(tile);
 
 		if (tile.Cost() > gold | !(await getBoolTask))
 			return false;
@@ -131,23 +131,21 @@ public class GameModel
 		return true;
 	}
 
-	private async Task<bool> AddTileAsync(Tile tile)
+	private Task<bool> AddTile(Tile tile)
 	{
 		ref Tile? temp = ref map[tile.Position.X + MAPRADIUS, tile.Position.Y + MAPRADIUS];
 
 		if (temp is not null)
-			return false;
-
-		CancellationTokenSource newSource = new();
-		Task getTask = Task.Run(tile.Run, newSource.Token);
+			return Task.FromResult(false);
 
 		temp = tile;
 		tiles.Add(tile);
+
+		CancellationTokenSource newSource = new();
+		Task.Run(tile.Run, newSource.Token);
 		tasks.Add(newSource);
 
-		await getTask;
-		
-		return true;
+		return Task.FromResult(true);
 	}
 
 	public List<Tile> GetCircleArea(Tile origin) => GetBoxArea(origin).FindAll(x => Coordinate.DistanceRoundDown(origin.Position, x.Position) < origin.Range);
@@ -208,16 +206,21 @@ public class GameModel
 
 	public async void OnCreatingGame()
 	{
-		await InitializeAsync();
+		await Initialize();
 
 		CreatingGame?.Invoke(null, new Tile.InitializeEventArgs());
 	}
 
+	public void OnPlacingTile(Coordinate position, FieldNames field)
+	{
+		PlacingTile?.Invoke(null, new Tile.PlaceEventArgs(position, field));
+	}
+
 	public void OnMoving(Coordinate old, Coordinate current)
 	{
-		Tile? tile = map[old.X + MAPRADIUS, old.Y + MAPRADIUS];
-		map[old.X + MAPRADIUS, old.Y + MAPRADIUS] = null;
-		map[current.X + MAPRADIUS, current.Y + MAPRADIUS] = tile;
+		Tile? tile = this[old.X, old.Y];
+		this[old.X, old.Y] = null;
+		this[current.X, current.Y] = tile;
 
 		Moving?.Invoke(null, new Tile.MoveEventArgs(old, current));
 	}
@@ -227,5 +230,20 @@ public class GameModel
 		map[position.X, position.Y] = null;
 
 		Dying?.Invoke(null, new Tile.DieEventArgs(position));
+	}
+
+	public override string ToString()
+	{
+		string result = string.Empty;
+
+		for (int i = 0; i < MAPLENGTH; ++i)
+		{
+			result += $"{((byte?)map[0, i]?.Type()) ?? 0}";
+			for (int j = 1; j < MAPLENGTH; ++j)
+				result += $", {((byte?)map[j, i]?.Type()) ?? 0}";
+			result += "\n";
+		}
+
+		return result;
 	}
 }

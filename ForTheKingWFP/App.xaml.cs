@@ -3,7 +3,6 @@ using ForTheKingWFP.View;
 using ForTheKingWFP.ViewModel;
 using System.ComponentModel;
 using System.Windows;
-using System.Windows.Threading;
 
 namespace ForTheKingWFP;
 
@@ -81,7 +80,7 @@ public partial class App : Application
 
 		//_timer.Stop();
 
-		if (MessageBox.Show("Are you sure you want to exit?", "Snake", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.No)
+		if (MessageBox.Show("Are you sure you want to exit?", "ForTheKing", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.No)
 		{
 			e.Cancel = true;
 
@@ -90,6 +89,8 @@ public partial class App : Application
 		}
 		else
 		{
+			_model.End();
+
 			_menu.Closing -= new CancelEventHandler(Closing);
 			//_game.Closing -= new CancelEventHandler(Closing);
 			try
@@ -112,11 +113,8 @@ public partial class App : Application
 		_menu.MaxHeight = size + 60;
 		_menu.MinHeight = size + 60;
 
-		_menu.MaxWidth = size + 20;
-		_menu.MinWidth = size + 20;
-
-		_menu.Height = size + 60;
-		_menu.Width = size + 20;
+		_menu.MaxWidth = size;
+		_menu.MinWidth = size;
 	}
 
 	/*private void ShowMenu(bool onOff)

@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
 using ForTheKing;
 
 namespace ForTheKingWFP.ViewModel;
@@ -8,7 +9,8 @@ public class Model : ViewModelBase
 	private readonly GameModel _model;
 
 	public static byte TableSize => GameModel.MAPLENGTH;
-	public long Timer => _model.Timer;
+	public uint Timer => _model.Timer;
+	public uint Gold => _model.Gold;
 	//public GamePhase GamePhase { get; set; }
 	public Field[,] Fields { get; set; }
 	public ObservableCollection<Field> ObservableFields { get; set; }
@@ -28,8 +30,9 @@ public class Model : ViewModelBase
 	public Model(GameModel model)
 	{
 		_model = model;
-		_model.Moving += new EventHandler<Tile.MoveEventArgs>(FieldChanged);
 		_model.CreatingGame += new EventHandler<Tile.InitializeEventArgs>(InitializeGame);
+		_model.PlacingTile += new EventHandler<Tile.PlaceEventArgs>(FieldAdded);
+		_model.Moving += new EventHandler<Tile.MoveEventArgs>(FieldMoved);
 
 		NewGameCommand = new DelegateCommand(param => OnNewGame());
 		ResumeCommand = new DelegateCommand(param => OnResume());
@@ -56,6 +59,8 @@ public class Model : ViewModelBase
 			}
 		}
 
+		Debug.Write("\n\n\n\ncica\n\n\n\n");
+
 		foreach (Tile tile in _model.Tiles)
 			Fields[tile.Position.Y + GameModel.MAPRADIUS, tile.Position.X + GameModel.MAPRADIUS].Value = tile.Type();
 
@@ -72,10 +77,23 @@ public class Model : ViewModelBase
 			Fields[_model.Table.Apple.X, _model.Table.Apple.Y].Value = FieldNames.Apple;
 	}*/
 
-	public void FieldChanged(object? sender, Tile.MoveEventArgs e)
+	public void FieldAdded(object? sender, Tile.PlaceEventArgs e)
 	{
-		Fields[e.NewPosition.X, e.NewPosition.Y].Value = Fields[e.OldPosition.X, e.OldPosition.Y].Value;
-		Fields[e.OldPosition.X, e.OldPosition.Y].Value = FieldNames.Empty;
+		(int x, int y) = (e.Position.X + GameModel.MAPRADIUS, e.Position.Y + GameModel.MAPRADIUS);
+
+		Fields[x, y].Value = e.Field;
+	}
+
+	public void FieldMoved(object? sender, Tile.MoveEventArgs e)
+	{
+		(int oldX, int oldY)  = (e.OldPosition.X + GameModel.MAPRADIUS, e.OldPosition.Y + GameModel.MAPRADIUS);
+		(int newX, int newY)  = (e.NewPosition.X + GameModel.MAPRADIUS, e.NewPosition.Y + GameModel.MAPRADIUS);
+
+		if (Fields[oldX, oldY].Value is FieldNames.Empty)
+			return;
+
+		Fields[newX, newY].Value = Fields[oldX, oldY].Value;
+		Fields[oldX, oldY].Value = FieldNames.Empty;
 	}
 
 	private void OnNewGame()
