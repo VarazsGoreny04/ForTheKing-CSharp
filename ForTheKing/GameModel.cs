@@ -4,19 +4,21 @@ public class GameModel
 {
 	public const byte MAPRADIUS = 12;
 	public const byte MAPLENGTH = MAPRADIUS * 2 + 1;
-	public const uint TICKTIME = 200;
+	public const uint TICKTIME = 10000;
 
-	// private static Phase gamePhase;
-	// private static Timer timer = new();
+	private long timer;
 	private readonly Tile?[,] map;
 	private readonly List<Tile> tiles;
+	private Castle castle;
 	private uint gold;
 
+	private CancellationTokenSource gameLoop;
 	private readonly List<CancellationTokenSource> tasks;
 
 	public Tile?[,] Map => map;
 	public List<Tile> Tiles => tiles;
 	public uint Gold { get => gold; }
+	public long Timer => timer;
 
 	public event EventHandler<Tile.InitializeEventArgs>? CreatingGame;
 	public event EventHandler<Tile.DieEventArgs>? Dying;
@@ -30,15 +32,20 @@ public class GameModel
 		tiles = [];
 
 		gold = 10;
+		timer = 0;
 
-		Castle castle = new(this, new Coordinate(0, 0));
+		castle = new(this, new Coordinate(0, 0));
 		map[castle.Position.X, castle.Position.Y] = castle;
 		tiles.Add(castle);
+
+		gameLoop = new CancellationTokenSource();
 	}
 
 	public async Task InitializeAsync()
 	{
 		// Clearing tasks
+		gameLoop.Cancel();
+		gameLoop = new CancellationTokenSource();
 		tasks.ForEach(x => x.Cancel());
 		tasks.Clear();
 
@@ -52,8 +59,46 @@ public class GameModel
 
 		// Initial state
 		gold = 10;
-		await AddTileAsync(new Castle(this, new Coordinate(0, 0)));
+		timer = 0;
+		castle = new Castle(this, new Coordinate(0, 0));
+		await AddTileAsync(castle);
 		// Game phase => start
+
+		//await Task.Run(GameLoop, gameLoop.Token);
+	}
+
+	public async Task GameLoop()
+	{
+		Random rnd = new();
+		List<Coordinate> possibilities = [];
+
+		while (castle.Hp is not 0)
+		{
+			await Task.Delay((int)TICKTIME);
+
+			for (sbyte i = -MAPRADIUS; i <= MAPRADIUS; ++i)
+			{
+				possibilities.Add(new Coordinate(-MAPRADIUS, i));
+				possibilities.Add(new Coordinate((sbyte)MAPRADIUS, i));
+			}
+			for (sbyte i = -MAPRADIUS; i <= MAPRADIUS; ++i)
+			{
+				possibilities.Add(new Coordinate(i, -MAPRADIUS));
+				possibilities.Add(new Coordinate(i, (sbyte)MAPRADIUS));
+			}
+
+			for (int i = 0; i < (timer / 10) + 1; ++i)
+			{
+				int index = rnd.Next(possibilities.Count);
+
+				await AddTileAsync(new Goblin(this, possibilities[index]));
+
+				possibilities.RemoveAt(index);
+			}
+
+			++gold;
+			++timer;
+		}
 	}
 
 	public Task EndAsync()

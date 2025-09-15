@@ -85,7 +85,7 @@ public abstract class Ally(GameModel game, Coordinate position, byte hp, byte da
 	public abstract byte Cost();
 }
 
-public class Castle(GameModel game, Coordinate position) : Ally(game, position, 100, 0, 0, 0)
+public sealed class Castle(GameModel game, Coordinate position) : Ally(game, position, 100, 0, 0, 0)
 {
 	public override void Run() { }
 
@@ -94,11 +94,11 @@ public class Castle(GameModel game, Coordinate position) : Ally(game, position, 
 	public override FieldNames Type() => FieldNames.Castle;
 }
 
-public class Knight(GameModel game, Coordinate position) : Ally(game, position, 5, 1, 1, 0)
+public sealed class Knight(GameModel game, Coordinate position) : Ally(game, position, 5, 1, 1, 0)
 {
 	public override void Attack() => game.GetBoxArea(this).FindAll(x => x is Enemy).ForEach(x => x.TakeHit(this));
 
-	public override byte Cost() => 1;
+	public override byte Cost() => 5;
 
 	public override FieldNames Type() => FieldNames.Ally;
 }
@@ -133,7 +133,7 @@ public abstract class Enemy(GameModel game, Coordinate position, byte hp, byte d
 	}
 }
 
-public class Goblin(GameModel game, Coordinate position) : Enemy(game, position, 2, 1, 1, 2)
+public sealed class Goblin(GameModel game, Coordinate position) : Enemy(game, position, 2, 1, 1, 2)
 {
 	public override void Attack() => game.GetBoxArea(this).FindAll(x => x is Ally)?.First().TakeHit(this);
 

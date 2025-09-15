@@ -15,7 +15,7 @@ public partial class App : Application
 	private Model _viewModel = null!;
 	private MainWindow _menu = null!;
 	//private GameWindow _game = null!;
-	private DispatcherTimer _timer = null!;
+	//private DispatcherTimer _timer = null!;
 
 	public App()
 	{
@@ -40,7 +40,7 @@ public partial class App : Application
 		_game.KeyDown += InputConverter;*/
 
 
-		_timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(0.4d) };
+		//_timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(0.4d) };
 		//_timer.Tick += new EventHandler(OneStep);
 	}
 
@@ -62,12 +62,12 @@ public partial class App : Application
 		//ShowMenu(false);
 
 		//_viewModel.GamePhase = GamePhase.Start;
-		_timer.Start();
+		//_timer.Start();
 	}
 
 	private void Pause(object? sender, EventArgs e)
 	{
-		_timer.Stop();
+		//_timer.Stop();
 		//_viewModel.GamePhase = GamePhase.Pause;
 
 		//ShowMenu(true);
@@ -77,16 +77,16 @@ public partial class App : Application
 
 	private void Closing(object? sender, CancelEventArgs e)
 	{
-		bool restartTimer = _timer.IsEnabled;
+		//bool restartTimer = _timer.IsEnabled;
 
-		_timer.Stop();
+		//_timer.Stop();
 
 		if (MessageBox.Show("Are you sure you want to exit?", "Snake", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.No)
 		{
 			e.Cancel = true;
 
-			if (restartTimer)
-				_timer.Start();
+			/*if (restartTimer)
+				_timer.Start();*/
 		}
 		else
 		{

@@ -7,7 +7,8 @@ public class Model : ViewModelBase
 {
 	private readonly GameModel _model;
 
-	public static byte TableSize { get => GameModel.MAPLENGTH; }
+	public static byte TableSize => GameModel.MAPLENGTH;
+	public long Timer => _model.Timer;
 	//public GamePhase GamePhase { get; set; }
 	public Field[,] Fields { get; set; }
 	public ObservableCollection<Field> ObservableFields { get; set; }

@@ -11,8 +11,12 @@
 			<RowDefinition Height="*" />
 			<RowDefinition Height="60" />
 		</Grid.RowDefinitions>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
 
-		<Grid x:Name="matrix" Grid.Row="0">
+		<Grid x:Name="matrix" Grid.Row="0" Grid.ColumnSpan="2">
 			<ItemsControl ItemsSource="{Binding ObservableFields}" Grid.Row="0" Grid.ColumnSpan="2" Margin="10,10,10,0">
 				<ItemsControl.ItemsPanel>
 					<ItemsPanelTemplate>
@@ -54,6 +58,7 @@
 			</ItemsControl>
 		</Grid>
 
-		<Button Name="buttonStart" Grid.Row="1" Content="New Game" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="16"  Height="25" IsEnabled="True" Command="{Binding NewGameCommand}" />
+		<Button Name="buttonStart" Grid.Row="1" Grid.Column="0" Content="New Game" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="16"  Height="25" IsEnabled="True" Command="{Binding NewGameCommand}" />
+		<Label Name="timer" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="16"  Height="40" Content="{Binding Timer}" />
 	</Grid>
 </Window>
