@@ -64,19 +64,18 @@ public class GameModel
 
 		this[castle.Position.X, castle.Position.Y] = castle;
 		tiles.Add(castle);
-		// Game phase => start
 
 		gameLoop.TokenSource = new CancellationTokenSource();
-		gameLoop.Task = Task.Run(GameLoop, gameLoop.TokenSource.Token);
+		gameLoop.Task = Task.Run(() => GameLoop(gameLoop.TokenSource), gameLoop.TokenSource.Token);
 
 		return Task.CompletedTask;
 	}
 
-	public async Task GameLoop()
+	public async Task GameLoop(CancellationTokenSource token)
 	{
 		Random rnd = new();
 
-		while (!gameLoop.TokenSource.IsCancellationRequested)
+		while (!token.IsCancellationRequested)
 		{
 			List<Coordinate> possibilities = [];
 			await Task.Delay((int)TICKTIME);
@@ -108,8 +107,6 @@ public class GameModel
 		gameLoop.TokenSource.Cancel();
 		tasks.ForEach(x => x.Cancel());
 		tasks.Clear();
-
-		// Game phase => end
 
 		return Task.CompletedTask;
 	}
@@ -204,6 +201,8 @@ public class GameModel
 
 	public async void OnCreatingGame()
 	{
+		await End();
+
 		await Initialize();
 
 		CreatingGame?.Invoke(null, new Tile.InitializeEventArgs());

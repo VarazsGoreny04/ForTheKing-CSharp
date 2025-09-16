@@ -10,7 +10,6 @@ public class GameViewModel : ViewModelBase
 	public static byte TableSize => GameModel.MAPLENGTH;
 	public uint Timer => _model.Timer;
 	public uint Gold => _model.Gold;
-	//public GamePhase GamePhase { get; set; }
 	public Field[,] Fields { get; set; }
 	public ObservableCollection<Field> ObservableFields { get; set; }
 

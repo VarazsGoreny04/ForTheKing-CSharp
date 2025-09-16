@@ -5,8 +5,8 @@ namespace ForTheKingBlazor.Components.View;
 
 public partial class Home
 {
-	private GameModel _model = null!;
-	private GameViewModel _viewModel = null!;
+	private readonly GameModel _model = null!;
+	private readonly GameViewModel _viewModel = null!;
 
 	private uint Gold => _model.Gold;
 	private uint Timer => _model.Timer;
@@ -15,6 +15,9 @@ public partial class Home
 	{
 		_model = new GameModel();
 		_viewModel = new GameViewModel(_model);
+
+		_model.TimerTicking += (_, _) => InvokeAsync(StateHasChanged);
+		_model.GoldChanging += (_, _) => InvokeAsync(StateHasChanged);
 
 		NewGame();
 	}

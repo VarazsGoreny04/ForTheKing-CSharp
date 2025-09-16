@@ -131,13 +131,6 @@ public sealed class Knight(GameModel game, Coordinate position) : Ally(game, pos
 			enemy.TakeHit(this);
 	}
 
-	/*public override Task Run()
-	{
-		game.OnPlacingTile(position, Type());
-
-		return Task.CompletedTask;
-	}*/
-
 	public override byte Cost() => 5;
 
 	public override FieldNames Type() => FieldNames.Ally;
