@@ -1,6 +1,4 @@
-﻿using ForTheKingWFP.ViewModel;
-
-namespace ForTheKing;
+﻿namespace ForTheKing;
 
 public abstract class Tile(GameModel game, Coordinate position, byte hp, byte damage, byte range, byte speed)
 {
@@ -57,13 +55,13 @@ public abstract class Tile(GameModel game, Coordinate position, byte hp, byte da
 
 	public virtual void Move() { }
 
-	public virtual async Task Run()
+	public virtual async Task Run(CancellationTokenSource token)
 	{
 		game.OnPlacingTile(position, Type());
 
 		int delay = (int)(speed * GameModel.TICKTIME);
 
-		while (hp > 0)
+		while (!token.IsCancellationRequested && hp > 0)
 		{
 			await Task.Delay(delay);
 
@@ -111,7 +109,7 @@ public sealed class Castle(GameModel game, Coordinate position) : Ally(game, pos
 		}
 	}
 
-	public override Task Run() { return Task.CompletedTask; }
+	public override Task Run(CancellationTokenSource token) { return Task.CompletedTask; }
 
 	public override byte Cost() => throw new NotImplementedException();
 

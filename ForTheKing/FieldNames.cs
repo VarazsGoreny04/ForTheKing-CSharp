@@ -1,4 +1,4 @@
-﻿namespace ForTheKingWFP.ViewModel;
+﻿namespace ForTheKing;
 
 public enum FieldNames
 {

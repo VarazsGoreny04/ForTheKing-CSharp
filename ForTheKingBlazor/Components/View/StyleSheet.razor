@@ -1,0 +1,22 @@
+<style>
+	:root {
+		--cell-size: 1.6rem;
+	}
+
+	.board {
+		display: grid;
+		grid-template-columns: repeat(var(--size), var(--cell-size));
+		grid-template-rows: repeat(var(--size), var(--cell-size));
+		gap: 0;
+	}
+
+	.cell {
+		width: var(--cell-size);
+		height: var(--cell-size);
+		border: 1px solid black;
+	}
+
+	.menu {
+		grid-template-columns: repeat(3), var(--cell-size));
+	}
+</style>

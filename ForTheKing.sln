@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForTheKing", "ForTheKing\Fo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForTheKingWFP", "ForTheKingWFP\ForTheKingWFP.csproj", "{25B1FCA0-8888-4907-9005-907877CC1161}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForTheKingBlazor", "ForTheKingBlazor\ForTheKingBlazor.csproj", "{2EB89532-EC41-4574-980E-46C2F4BB130A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{25B1FCA0-8888-4907-9005-907877CC1161}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{25B1FCA0-8888-4907-9005-907877CC1161}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{25B1FCA0-8888-4907-9005-907877CC1161}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2EB89532-EC41-4574-980E-46C2F4BB130A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2EB89532-EC41-4574-980E-46C2F4BB130A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2EB89532-EC41-4574-980E-46C2F4BB130A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2EB89532-EC41-4574-980E-46C2F4BB130A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

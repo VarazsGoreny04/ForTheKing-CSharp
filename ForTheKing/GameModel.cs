@@ -1,6 +1,4 @@
-﻿using ForTheKingWFP.ViewModel;
-
-namespace ForTheKing;
+﻿namespace ForTheKing;
 
 public class GameModel
 {
@@ -78,7 +76,7 @@ public class GameModel
 	{
 		Random rnd = new();
 
-		while (castle.Hp is not 0)
+		while (!gameLoop.TokenSource.IsCancellationRequested)
 		{
 			List<Coordinate> possibilities = [];
 			await Task.Delay((int)TICKTIME);
@@ -121,7 +119,7 @@ public class GameModel
 		return (-MAPRADIUS <= c.X && c.X <= MAPRADIUS && -MAPRADIUS <= c.Y && c.Y <= MAPRADIUS) ? this[c.X, c.Y] : null;
 	}
 
-	public bool BuyAsync(Ally tile)
+	public bool Buy(Ally tile)
 	{
 		if (tile.Cost() > gold || !AddTile(tile))
 			return false;
@@ -142,7 +140,7 @@ public class GameModel
 		tiles.Add(tile);
 
 		CancellationTokenSource newSource = new();
-		Task.Run(tile.Run, newSource.Token);
+		Task.Run(() => tile.Run(newSource), newSource.Token);
 		tasks.Add(newSource);
 
 		return true;

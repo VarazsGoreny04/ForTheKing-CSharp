@@ -1,7 +1,7 @@
 ﻿using ForTheKing;
 using System.Collections.ObjectModel;
 
-namespace ForTheKingWFP.ViewModel;
+namespace ForTheKingBlazor.Components.ViewModel;
 
 public class GameViewModel : ViewModelBase
 {
