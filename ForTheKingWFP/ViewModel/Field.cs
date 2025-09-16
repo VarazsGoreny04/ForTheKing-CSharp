@@ -9,6 +9,8 @@ public class Field : ViewModelBase
 	public sbyte X { get; set; }
 	public sbyte Y { get; set; }
 
+	public DelegateCommand? BuyCommand { get; set; }
+
 	public FieldNames Value
 	{
 		get { return _value; }

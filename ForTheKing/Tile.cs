@@ -1,5 +1,4 @@
 ﻿using ForTheKingWFP.ViewModel;
-using System.Diagnostics;
 
 namespace ForTheKing;
 
@@ -49,7 +48,7 @@ public abstract class Tile(GameModel game, Coordinate position, byte hp, byte da
 		hp = (byte)(Math.Max(hp - enemy.damage, 0));
 
 		if (hp == 0)
-			game.OnDying(enemy.position);
+			game.OnDying(position);
 	}
 
 	public virtual Tile? Target() { return null; }
@@ -73,9 +72,7 @@ public abstract class Tile(GameModel game, Coordinate position, byte hp, byte da
 			if (target is Tile t && Coordinate.Distance(position, t.position) <= range)
 				Attack();
 			else
-			{
 				Move();
-			}
 		}
 	}
 
@@ -109,7 +106,7 @@ public sealed class Castle(GameModel game, Coordinate position) : Ally(game, pos
 
 		if (hp == 0)
 		{
-			game.OnDying(enemy.Position);
+			game.OnDying(position);
 			game.End();
 		}
 	}
@@ -121,9 +118,27 @@ public sealed class Castle(GameModel game, Coordinate position) : Ally(game, pos
 	public override FieldNames Type() => FieldNames.Castle;
 }
 
-public sealed class Knight(GameModel game, Coordinate position) : Ally(game, position, 5, 1, 1, 0)
+public sealed class Knight(GameModel game, Coordinate position) : Ally(game, position, 5, 1, 1, 2)
 {
-	public override void Attack() => game.GetBoxArea(this).FindAll(x => x is Enemy).ForEach(x => x.TakeHit(this));
+	public override Tile? Target()
+	{
+		return game.GetCircleArea(this).FindAll(x => x is Enemy).MinBy(x => Coordinate.Distance(position, x.Position));
+	}
+
+	public override void Attack()
+	{
+		List<Tile> enemiesInRange = game.GetBoxArea(this).FindAll(x => x is Enemy);
+
+		foreach (Tile enemy in enemiesInRange)
+			enemy.TakeHit(this);
+	}
+
+	/*public override Task Run()
+	{
+		game.OnPlacingTile(position, Type());
+
+		return Task.CompletedTask;
+	}*/
 
 	public override byte Cost() => 5;
 
@@ -160,19 +175,12 @@ public abstract class Enemy(GameModel game, Coordinate position, byte hp, byte d
 			game.OnMoving(position, newPosition);
 			position = newPosition;
 		}
-		else
-		{
-
-		}
-
-
-		Debug.WriteLine(game.ToString());
 	}
 }
 
 public sealed class Goblin(GameModel game, Coordinate position) : Enemy(game, position, 2, 1, 1, 2)
 {
-	public override void Attack() => game.GetBoxArea(this).FindAll(x => x is Ally)?.First().TakeHit(this);
+	public override void Attack() => game.GetPlusArea(this).FindAll(x => x is Ally).First().TakeHit(this);
 
 	public override FieldNames Type() => FieldNames.Enemy;
 }

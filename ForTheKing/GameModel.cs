@@ -1,13 +1,15 @@
 ﻿using ForTheKingWFP.ViewModel;
-using System.Diagnostics;
 
 namespace ForTheKing;
 
 public class GameModel
 {
+	public class TimerEventArgs : EventArgs { }
+	public class GoldEventArgs : EventArgs { }
+
 	public const byte MAPRADIUS = 7;
 	public const byte MAPLENGTH = MAPRADIUS * 2 + 1;
-	public const uint TICKTIME = 1000;
+	public const uint TICKTIME = 300;
 
 	private uint timer;
 	private readonly Tile?[,] map;
@@ -24,9 +26,11 @@ public class GameModel
 	public Tile? this[int x, int y] { get => map[x + MAPRADIUS, y + MAPRADIUS]; private set => map[x + MAPRADIUS, y + MAPRADIUS] = value; }
 
 	public event EventHandler<Tile.InitializeEventArgs>? CreatingGame;
+	public event EventHandler<TimerEventArgs>? TimerTicking;
+	public event EventHandler<GoldEventArgs>? GoldChanging;
 	public event EventHandler<Tile.PlaceEventArgs>? PlacingTile;
-	public event EventHandler<Tile.DieEventArgs>? Dying;
 	public event EventHandler<Tile.MoveEventArgs>? Moving;
+	public event EventHandler<Tile.DieEventArgs>? Dying;
 
 	public GameModel()
 	{
@@ -76,8 +80,6 @@ public class GameModel
 
 		while (castle.Hp is not 0)
 		{
-			Debug.WriteLine(ToString());
-
 			List<Coordinate> possibilities = [];
 			await Task.Delay((int)TICKTIME);
 
@@ -89,17 +91,17 @@ public class GameModel
 				possibilities.Add(new Coordinate(i, (sbyte)MAPRADIUS));
 			}
 
-			/*for (int i = 0; i < (timer / 10) + 1; ++i)
-			{*/
-			int index = rnd.Next(possibilities.Count);
+			for (int i = 0; timer % 5 == 0 && i < Math.Min((timer / 100) + 1, 6); ++i)
+			{
+				int index = rnd.Next(possibilities.Count);
 
-			await AddTile(new Goblin(this, possibilities[index]));
+				AddTile(new Goblin(this, possibilities[index]));
 
-			possibilities.RemoveAt(index);
-			//}
+				possibilities.RemoveAt(index);
+			}
 
-			++gold;
-			++timer;
+			OnGoldAdvanced(1);
+			OnTimerAdvanced();
 		}
 	}
 
@@ -119,24 +121,22 @@ public class GameModel
 		return (-MAPRADIUS <= c.X && c.X <= MAPRADIUS && -MAPRADIUS <= c.Y && c.Y <= MAPRADIUS) ? this[c.X, c.Y] : null;
 	}
 
-	public async Task<bool> BuyAsync(Ally tile)
+	public bool BuyAsync(Ally tile)
 	{
-		Task<bool> getBoolTask = AddTile(tile);
-
-		if (tile.Cost() > gold | !(await getBoolTask))
+		if (tile.Cost() > gold || !AddTile(tile))
 			return false;
 
-		gold -= tile.Cost();
+		OnGoldAdvanced(-tile.Cost());
 
 		return true;
 	}
 
-	private Task<bool> AddTile(Tile tile)
+	private bool AddTile(Tile tile)
 	{
 		ref Tile? temp = ref map[tile.Position.X + MAPRADIUS, tile.Position.Y + MAPRADIUS];
 
 		if (temp is not null)
-			return Task.FromResult(false);
+			return false;
 
 		temp = tile;
 		tiles.Add(tile);
@@ -145,10 +145,10 @@ public class GameModel
 		Task.Run(tile.Run, newSource.Token);
 		tasks.Add(newSource);
 
-		return Task.FromResult(true);
+		return true;
 	}
 
-	public List<Tile> GetCircleArea(Tile origin) => GetBoxArea(origin).FindAll(x => Coordinate.DistanceRoundDown(origin.Position, x.Position) < origin.Range);
+	public List<Tile> GetCircleArea(Tile origin) => GetBoxArea(origin).FindAll(x => Coordinate.DistanceRoundDown(origin.Position, x.Position) <= origin.Range);
 
 	public List<Tile> GetBoxArea(Tile origin)
 	{
@@ -158,7 +158,7 @@ public class GameModel
 		{
 			for (int j = -origin.Range; j <= origin.Range; ++j)
 			{
-				if (j != 0 && i != 0 && GetTile(new Coordinate((sbyte)(origin.Position.X - j), (sbyte)(origin.Position.Y - i))) is Tile current)
+				if ((j != 0 || i != 0) && GetTile(new Coordinate((sbyte)(origin.Position.X + j), (sbyte)(origin.Position.Y + i))) is Tile current)
 					result.Add(current);
 			}
 		}
@@ -211,6 +211,20 @@ public class GameModel
 		CreatingGame?.Invoke(null, new Tile.InitializeEventArgs());
 	}
 
+	public void OnTimerAdvanced()
+	{
+		++timer;
+
+		TimerTicking?.Invoke(null, new TimerEventArgs());
+	}
+
+	public void OnGoldAdvanced(int difference)
+	{
+		gold = (uint)(gold + difference);
+
+		GoldChanging?.Invoke(null, new GoldEventArgs());
+	}
+
 	public void OnPlacingTile(Coordinate position, FieldNames field)
 	{
 		PlacingTile?.Invoke(null, new Tile.PlaceEventArgs(position, field));
@@ -227,7 +241,7 @@ public class GameModel
 
 	public void OnDying(Coordinate position)
 	{
-		map[position.X, position.Y] = null;
+		this[position.X, position.Y] = null;
 
 		Dying?.Invoke(null, new Tile.DieEventArgs(position));
 	}

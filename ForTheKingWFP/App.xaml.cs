@@ -1,6 +1,6 @@
 ﻿using ForTheKing;
-using ForTheKingWFP.View;
 using ForTheKingWFP.ViewModel;
+using ForTheKingWFP.View;
 using System.ComponentModel;
 using System.Windows;
 
@@ -11,7 +11,7 @@ public partial class App : Application
 	private const int BLOCK = 20;
 
 	private GameModel _model = null!;
-	private Model _viewModel = null!;
+	private GameViewModel _viewModel = null!;
 	private MainWindow _menu = null!;
 	//private GameWindow _game = null!;
 	//private DispatcherTimer _timer = null!;
@@ -25,10 +25,8 @@ public partial class App : Application
 	{
 		_model = new GameModel();
 
-		_viewModel = new Model(_model);
+		_viewModel = new GameViewModel(_model);
 		_viewModel.NewGame += new EventHandler(NewGame);
-		_viewModel.Resume += new EventHandler(Resume);
-		_viewModel.Pause += new EventHandler(Pause);
 
 		_menu = new MainWindow { DataContext = _viewModel };
 		_menu.Closing += new CancelEventHandler(Closing);
@@ -52,26 +50,8 @@ public partial class App : Application
 		//ShowMenu(false);
 		//_menu.buttonResume.IsEnabled = true;
 
-		SetWindowSize(Model.TableSize);
-		//_viewModel.GamePhase = GamePhase.Hold;
-	}
-
-	private void Resume(object? sender, EventArgs e)
-	{
-		//ShowMenu(false);
-
-		//_viewModel.GamePhase = GamePhase.Start;
-		//_timer.Start();
-	}
-
-	private void Pause(object? sender, EventArgs e)
-	{
-		//_timer.Stop();
-		//_viewModel.GamePhase = GamePhase.Pause;
-
-		//ShowMenu(true);
-		//_menu.labelTitle.Foreground = Brushes.Black;
-		//_menu.labelTitle.Content = "Snake";
+		SetWindowSize(GameViewModel.TableSize);
+		//_GamePhase = GamePhase.Hold;
 	}
 
 	private void Closing(object? sender, CancelEventArgs e)
