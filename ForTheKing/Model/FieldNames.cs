@@ -1,4 +1,4 @@
-﻿namespace ForTheKing;
+﻿namespace ForTheKing.Model;
 
 public enum FieldNames
 {

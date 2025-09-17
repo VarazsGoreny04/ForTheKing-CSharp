@@ -1,8 +1,8 @@
-﻿using ForTheKing;
-using ForTheKingWFP.ViewModel;
+﻿using ForTheKingWFP.ViewModel;
 using ForTheKingWFP.View;
 using System.ComponentModel;
 using System.Windows;
+using ForTheKing.Model;
 
 namespace ForTheKingWFP;
 

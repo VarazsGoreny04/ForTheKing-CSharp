@@ -1,4 +1,4 @@
-﻿using ForTheKing;
+﻿using ForTheKing.Model;
 
 namespace ForTheKingWFP.ViewModel;
 

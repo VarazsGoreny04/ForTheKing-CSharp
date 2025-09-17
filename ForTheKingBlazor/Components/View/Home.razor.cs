@@ -1,4 +1,5 @@
-using ForTheKing;
+using ForTheKing.Model;
+using ForTheKing.Persistence;
 using ForTheKingBlazor.Components.ViewModel;
 
 namespace ForTheKingBlazor.Components.View;
@@ -29,6 +30,6 @@ public partial class Home
 
 	private void Buy(int x, int y)
 	{
-		_model.Buy(new Knight(_model, new Coordinate((sbyte)(x - GameModel.MAPRADIUS), (sbyte)(y - GameModel.MAPRADIUS))));
+		_model.Buy(new Knight(_model, new Coordinate((sbyte)(x - GameBoard.MAPRADIUS), (sbyte)(y - GameBoard.MAPRADIUS))));
 	}
 }

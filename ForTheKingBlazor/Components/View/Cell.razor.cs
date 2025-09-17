@@ -1,4 +1,4 @@
-using ForTheKing;
+using ForTheKing.Model;
 using ForTheKingBlazor.Components.ViewModel;
 using Microsoft.AspNetCore.Components;
 

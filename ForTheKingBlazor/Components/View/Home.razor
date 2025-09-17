@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using ForTheKing.Persistence
 @rendermode InteractiveServer
 
 <PageTitle>ForTheKing</PageTitle>
@@ -6,10 +7,10 @@
 <StyleSheet />
 
 <div class="game-wrapper">
-	<div class="board" style="--size: @ForTheKing.GameModel.MAPLENGTH;">
-		@for (int i = 0; i < ForTheKing.GameModel.MAPLENGTH; ++i)
+	<div class="board" style="--size: @GameBoard.MAPLENGTH;">
+		@for (int i = 0; i < GameBoard.MAPLENGTH; ++i)
 		{
-			for (int j = 0; j < ForTheKing.GameModel.MAPLENGTH; ++j)
+			for (int j = 0; j < GameBoard.MAPLENGTH; ++j)
 			{
 				int x = j, y = i;
 				<Cell X="@x" Y="@y"

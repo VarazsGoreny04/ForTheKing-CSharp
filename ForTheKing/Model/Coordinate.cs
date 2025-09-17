@@ -1,4 +1,4 @@
-﻿namespace ForTheKing;
+﻿namespace ForTheKing.Model;
 
 public class Coordinate(sbyte x, sbyte y)
 {

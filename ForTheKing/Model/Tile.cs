@@ -1,4 +1,6 @@
-﻿namespace ForTheKing;
+﻿using ForTheKing.Persistence;
+
+namespace ForTheKing.Model;
 
 public abstract class Tile(GameModel game, Coordinate position, byte hp, byte damage, byte range, byte speed)
 {
@@ -43,7 +45,7 @@ public abstract class Tile(GameModel game, Coordinate position, byte hp, byte da
 
 	public virtual void TakeHit(Tile enemy)
 	{
-		hp = (byte)(Math.Max(hp - enemy.damage, 0));
+		hp = (byte)Math.Max(hp - enemy.damage, 0);
 
 		if (hp == 0)
 			game.OnDying(position);
@@ -59,7 +61,7 @@ public abstract class Tile(GameModel game, Coordinate position, byte hp, byte da
 	{
 		game.OnPlacingTile(position, Type());
 
-		int delay = (int)(speed * GameModel.TICKTIME);
+		int delay = (int)(speed * GameBoard.TICKTIME);
 
 		while (!token.IsCancellationRequested && hp > 0)
 		{
@@ -100,7 +102,7 @@ public sealed class Castle(GameModel game, Coordinate position) : Ally(game, pos
 {
 	public override void TakeHit(Tile enemy)
 	{
-		hp = (byte)(Math.Max(hp - enemy.Damage, 0));
+		hp = (byte)Math.Max(hp - enemy.Damage, 0);
 
 		if (hp == 0)
 		{
@@ -120,12 +122,12 @@ public sealed class Knight(GameModel game, Coordinate position) : Ally(game, pos
 {
 	public override Tile? Target()
 	{
-		return game.GetCircleArea(this).FindAll(x => x is Enemy).MinBy(x => Coordinate.Distance(position, x.Position));
+		return game.Board.GetCircleArea(this).FindAll(x => x is Enemy).MinBy(x => Coordinate.Distance(position, x.Position));
 	}
 
 	public override void Attack()
 	{
-		List<Tile> enemiesInRange = game.GetBoxArea(this).FindAll(x => x is Enemy);
+		List<Tile> enemiesInRange = game.Board.GetBoxArea(this).FindAll(x => x is Enemy);
 
 		foreach (Tile enemy in enemiesInRange)
 			enemy.TakeHit(this);
@@ -140,7 +142,7 @@ public abstract class Enemy(GameModel game, Coordinate position, byte hp, byte d
 {
 	public override Tile? Target()
 	{
-		return game.GetCircleArea(this).FindAll(x => x is Ally).MinBy(x => Coordinate.Distance(position, x.Position));
+		return game.Board.GetCircleArea(this).FindAll(x => x is Ally).MinBy(x => Coordinate.Distance(position, x.Position));
 	}
 
 	protected static Coordinate StdMove(Enemy tile)
@@ -171,7 +173,7 @@ public abstract class Enemy(GameModel game, Coordinate position, byte hp, byte d
 
 public sealed class Goblin(GameModel game, Coordinate position) : Enemy(game, position, 2, 1, 1, 2)
 {
-	public override void Attack() => game.GetPlusArea(this).FindAll(x => x is Ally).First().TakeHit(this);
+	public override void Attack() => game.Board.GetPlusArea(this).FindAll(x => x is Ally).First().TakeHit(this);
 
 	public override FieldNames Type() => FieldNames.Enemy;
 }
